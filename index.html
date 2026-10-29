@@ -39,7 +39,7 @@ label.chk{display:flex;gap:8px;align-items:center;padding:4px 0}
 const STAGES=["Submitted","Scrutiny","Inspection","Decision"],SLA=[2,5,7,3];
 const DOCS={"New approval":["Land document","Trust registration","Faculty list","Fire safety certificate","Audited accounts"],"Extension of approval":["Faculty list","Fire safety certificate","Audited accounts","Previous approval letter"],"Closure":["Closure resolution","Student transfer plan","No-dues certificate"]};
 const KEY="aicte-demo-v1";let S,me={inst:0};
-function seed(){const n=["Sri Ramanujan Institute of Technology","Kaveri College of Engineering","Anna Nagar Polytechnic","Vidya Management Institute","Nilgiri School of Pharmacy","Coastal Institute of Technology","Deccan Engineering College","Himalaya Technical Campus"];
+function seed(){const n=["K S R College of Engineering","Kaveri College of Engineering","Nandha College of Technology","Kongu Engineering College","Vivekanandha College of Engineering for Women","Mahendra colllege of Technology","Erode Sengunthar Engineering College","Al-Ameen Engineering College"];
 const t=Object.keys(DOCS);S={log:[],apps:n.map((x,i)=>{const ty=t[i%3],req=DOCS[ty],st=i%4;return{id:"APP-"+(1001+i),inst:x,type:ty,stage:st,days:[1,6,3,9,2,4,8,1][i],docs:Object.fromEntries(req.map((d,j)=>[d,(i+j)%5!==0?(i===3&&j===0?"expired":"ok"):"missing"])),complaints:[0,1,0,2,0,0,1,0][i],status:"Active"}})};
 S.log.push(stamp("System","Demo data loaded"))}
 function stamp(who,what){return{t:new Date().toLocaleString("en-IN"),who,what}}
