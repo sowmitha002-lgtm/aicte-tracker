@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AICTE Approval Tracker</title>
+<style>
+:root{--ink:#17233a;--paper:#f4f6f8;--card:#fff;--line:#d9dee5;--mut:#5d6878;--teal:#0f766e;--amber:#b45309;--red:#b42318;--tealbg:#e2f3f1;--amberbg:#fdf0dc;--redbg:#fde8e6}
+@media(prefers-color-scheme:dark){:root{--ink:#e8edf4;--paper:#0f1724;--card:#182235;--line:#2b3850;--mut:#9aa7ba;--teal:#4fd1c0;--amber:#f0b24d;--red:#ff8a80;--tealbg:#123a3a;--amberbg:#3d2e12;--redbg:#44201f}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 "IBM Plex Sans",system-ui,sans-serif;background:var(--paper);color:var(--ink)}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:2px solid var(--ink);background:var(--card)}
+h1{font-size:19px;margin:0;font-weight:700}h1 small{display:block;font-weight:400;color:var(--mut);font-size:12px}
+main{max-width:1100px;margin:0 auto;padding:20px}
+h2{font-size:17px;margin:26px 0 10px}
+.row{display:flex;flex-wrap:wrap;gap:12px}.grow{flex:1 1 220px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px}
+.kpi b{font-size:30px;display:block;line-height:1.1}.kpi span{color:var(--mut);font-size:13px}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--ink);color:var(--paper);border:0;border-radius:4px;padding:7px 12px;cursor:pointer}
+button.ghost{background:none;color:var(--ink);border:1px solid var(--line)}button.bad{background:var(--red);color:#fff}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+select,input{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:6px 8px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:13px;color:var(--mut);font-weight:600}
+.wrap{overflow-x:auto}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:600}
+.ok{background:var(--tealbg);color:var(--teal)}.warn{background:var(--amberbg);color:var(--amber)}.bad2{background:var(--redbg);color:var(--red)}
+.bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden}.bar i{display:block;height:100%}
+.steps{display:flex;gap:4px;margin:8px 0}.steps div{flex:1;padding:6px;text-align:center;font-size:12px;border-radius:4px;background:var(--line);color:var(--mut)}
+.steps .done{background:var(--tealbg);color:var(--teal)}.steps .now{background:var(--ink);color:var(--paper)}
+.alert{padding:8px 12px;border-left:4px solid var(--amber);background:var(--amberbg);margin:6px 0;border-radius:0 4px 4px 0}.alert.r{border-color:var(--red);background:var(--redbg)}
+.log{font-size:13px;color:var(--mut);padding:4px 0;border-bottom:1px dashed var(--line)}
+.col{display:flex;align-items:end;gap:14px;height:140px;padding-top:10px}.col div{flex:1;text-align:center;font-size:12px}.col i{display:block;background:var(--teal);border-radius:4px 4px 0 0;margin-bottom:4px}
+label.chk{display:flex;gap:8px;align-items:center;padding:4px 0}
+.toast{position:fixed;bottom:16px;right:16px;background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:6px}
+</style></head><body>
+<header><h1>AICTE Approval Tracker<small>Workflow, compliance and alerts in one place</small></h1>
+<div><label>Signed in as <select id="role"><option value="inst">Institution</option><option value="off">AICTE Officer</option><option value="adm">Admin</option></select></label>
+<button class="ghost" id="reset">Reset demo data</button></div></header>
+<main id="app"></main><div id="toast" class="toast" hidden></div>
+<script>
+const STAGES=["Submitted","Scrutiny","Inspection","Decision"],SLA=[2,5,7,3];
+const DOCS={"New approval":["Land document","Trust registration","Faculty list","Fire safety certificate","Audited accounts"],"Extension of approval":["Faculty list","Fire safety certificate","Audited accounts","Previous approval letter"],"Closure":["Closure resolution","Student transfer plan","No-dues certificate"]};
+const KEY="aicte-demo-v1";let S,me={inst:0};
+function seed(){const n=["Sri Ramanujan Institute of Technology","Kaveri College of Engineering","Anna Nagar Polytechnic","Vidya Management Institute","Nilgiri School of Pharmacy","Coastal Institute of Technology","Deccan Engineering College","Himalaya Technical Campus"];
+const t=Object.keys(DOCS);S={log:[],apps:n.map((x,i)=>{const ty=t[i%3],req=DOCS[ty],st=i%4;return{id:"APP-"+(1001+i),inst:x,type:ty,stage:st,days:[1,6,3,9,2,4,8,1][i],docs:Object.fromEntries(req.map((d,j)=>[d,(i+j)%5!==0?(i===3&&j===0?"expired":"ok"):"missing"])),complaints:[0,1,0,2,0,0,1,0][i],status:"Active"}})};
+S.log.push(stamp("System","Demo data loaded"))}
+function stamp(who,what){return{t:new Date().toLocaleString("en-IN"),who,what}}
+function load(){try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}if(!S)seed()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const missing=a=>Object.values(a.docs).filter(v=>v==="missing").length,expired=a=>Object.values(a.docs).filter(v=>v==="expired").length;
+const overdue=a=>a.status==="Active"&&a.days>SLA[a.stage]&&a.stage<4;
+const score=a=>Math.max(0,100-missing(a)*12-expired(a)*10-a.complaints*8-(overdue(a)?15:0));
+const cls=s=>s>=75?"ok":s>=50?"warn":"bad2";
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.hidden=false;setTimeout(()=>t.hidden=true,2200)}
+function alerts(a){const o=[];if(missing(a))o.push([0,`${a.id}: ${missing(a)} document(s) missing`]);if(expired(a))o.push([1,`${a.id}: a certificate has expired`]);
+if(overdue(a))o.push([1,`${a.id}: ${a.days} days in ${STAGES[a.stage]} (limit ${SLA[a.stage]}). Escalated to supervisor`]);if(a.complaints)o.push([0,`${a.id}: ${a.complaints} open complaint(s)`]);return o}
+function steps(a){return`<div class="steps">${STAGES.map((s,i)=>`<div class="${a.status!=="Active"?(i<=a.stage?"done":""):i<a.stage?"done":i===a.stage?"now":""}">${s}</div>`).join("")}</div>`}
+function scoreBar(s){return`<div class="bar" aria-hidden="true"><i style="width:${s}%;background:${s>=75?"var(--teal)":s>=50?"var(--amber)":"var(--red)"}"></i></div>`}
+function render(){const r=document.getElementById("role").value;document.getElementById("app").innerHTML=r==="inst"?vInst():r==="off"?vOff():vAdm();save()}
+function vInst(){const a=S.apps[me.inst];const al=alerts(a);
+return`<h2>Your institution</h2><div class="box"><div class="row" style="justify-content:space-between"><div><b>${a.inst}</b><br><span style="color:var(--mut)">${a.id} · ${a.type}</span></div>
+<label>Switch demo institution <select onchange="me.inst=+this.value;render()">${S.apps.map((x,i)=>`<option value="${i}" ${i===me.inst?"selected":""}>${x.inst}</option>`).join("")}</select></label></div>
+${steps(a)}<p>Status: <span class="pill ${a.status==="Active"?"warn":a.status==="Approved"?"ok":"bad2"}">${a.status}</span> · ${a.days} day(s) in ${STAGES[a.stage]}</p>
+<p>Compliance score: <b>${score(a)}/100</b></p>${scoreBar(score(a))}</div>
+<h2>Document checklist for ${a.type}</h2><div class="box">${Object.entries(a.docs).map(([d,v])=>`<label class="chk"><span class="pill ${v==="ok"?"ok":v==="expired"?"warn":"bad2"}" style="min-width:68px;text-align:center">${v==="ok"?"Uploaded":v==="expired"?"Expired":"Missing"}</span>${d}${v!=="ok"?` <button class="ghost" onclick="up(${me.inst},'${d}')">Upload valid file</button>`:""}</label>`).join("")}</div>
+<h2>Alerts for you</h2>${al.length?al.map(x=>`<div class="alert ${x[0]?"r":""}">${x[1]}</div>`).join(""):'<div class="box">No alerts. Your application is on track.</div>'}
+<h2>Start a new application</h2><div class="box row"><select id="nt">${Object.keys(DOCS).map(t=>`<option>${t}</option>`).join("")}</select><button onclick="newApp()">Create application</button></div>`}
+function up(i,d){const a=S.apps[i];a.docs[d]="ok";S.log.unshift(stamp(a.inst,`Uploaded "${d}" for ${a.id}`));toast("Document uploaded");render()}
+function newApp(){const t=document.getElementById("nt").value,a=S.apps[me.inst];S.apps.push({id:"APP-"+(1001+S.apps.length),inst:a.inst,type:t,stage:0,days:0,docs:Object.fromEntries(DOCS[t].map(d=>[d,"missing"])),complaints:a.complaints,status:"Active"});
+me.inst=S.apps.length-1;S.log.unshift(stamp(a.inst,`Created ${t} application`));toast("Application created");render()}
+function vOff(){const q=S.apps.map((a,i)=>[a,i]).filter(([a])=>a.status==="Active").sort((x,y)=>overdue(y[0])-overdue(x[0]));
+return`<h2>Review queue (overdue files first)</h2><div class="box wrap"><table><tr><th>File</th><th>Stage</th><th>Timer</th><th>Documents</th><th>Score</th><th>Action</th></tr>
+${q.map(([a,i])=>`<tr><td><b>${a.inst}</b><br>${a.id} · ${a.type}</td><td>${STAGES[a.stage]}</td>
+<td><span class="pill ${overdue(a)?"bad2":"ok"}">${a.days}/${SLA[a.stage]} days</span></td><td>${missing(a)?missing(a)+" missing":"Complete"}${expired(a)?", "+expired(a)+" expired":""}</td>
+<td><span class="pill ${cls(score(a))}">${score(a)}</span></td>
+<td><button onclick="act(${i},'adv')">${a.stage===3?"Approve":"Move to "+STAGES[a.stage+1]}</button> <button class="ghost" onclick="act(${i},'chg')">Request changes</button> <button class="bad" onclick="act(${i},'rej')">Reject</button></td></tr>`).join("")||'<tr><td colspan="6">Queue is empty.</td></tr>'}</table></div>`}
+function act(i,k){const a=S.apps[i];
+if(k==="adv"){if(a.stage===3){if(missing(a)||expired(a)){toast("Cannot approve: documents missing or expired");return}a.status="Approved";S.log.unshift(stamp("Officer",`Approved ${a.id}`))}else{a.stage++;a.days=0;S.log.unshift(stamp("Officer",`Moved ${a.id} to ${STAGES[a.stage]}`))}}
+if(k==="chg"){a.days=0;S.log.unshift(stamp("Officer",`Requested changes on ${a.id}`))}
+if(k==="rej"){a.status="Rejected";S.log.unshift(stamp("Officer",`Rejected ${a.id}`))}render()}
+function vAdm(){const A=S.apps,act=A.filter(a=>a.status==="Active"),od=act.filter(overdue),avg=Math.round(A.reduce((s,a)=>s+score(a),0)/A.length),mx=Math.max(1,...STAGES.map((_,i)=>act.filter(a=>a.stage===i).length));
+return`<h2>Overview</h2><div class="row">${[["Active files",act.length],["Overdue and escalated",od.length],["Average compliance",avg],["Open complaints",A.reduce((s,a)=>s+a.complaints,0)]].map(k=>`<div class="box kpi grow"><b>${k[1]}</b><span>${k[0]}</span></div>`).join("")}</div>
+<h2>Files by stage</h2><div class="box"><div class="col">${STAGES.map((s,i)=>{const c=act.filter(a=>a.stage===i).length;return`<div><i style="height:${c/mx*100}px"></i>${c}<br>${s}</div>`}).join("")}</div></div>
+<h2>Escalations</h2>${od.length?od.map(a=>`<div class="alert r">${a.id} (${a.inst}) is ${a.days-SLA[a.stage]} day(s) past the ${STAGES[a.stage]} limit.</div>`).join(""):'<div class="box">Nothing overdue.</div>'}
+<h2>Institutions ranked by compliance</h2><div class="box wrap"><table><tr><th>Institution</th><th>Application</th><th>Score</th></tr>${[...A].sort((x,y)=>score(x)-score(y)).map(a=>`<tr><td>${a.inst}</td><td>${a.id} · ${a.status}</td><td style="min-width:140px"><span class="pill ${cls(score(a))}">${score(a)}</span>${scoreBar(score(a))}</td></tr>`).join("")}</table></div>
+<h2>Audit trail</h2><div class="box">${S.log.slice(0,15).map(l=>`<div class="log">${l.t} · <b>${l.who}</b>: ${l.what}</div>`).join("")}</div>
+<p><button class="ghost" onclick="tick()">Simulate one day passing</button></p>`}
+function tick(){S.apps.forEach(a=>{if(a.status==="Active")a.days++});S.log.unshift(stamp("System","Day advanced. SLA timers updated"));toast("One day passed");render()}
+document.getElementById("role").onchange=render;
+document.getElementById("reset").onclick=()=>{seed();me.inst=0;toast("Demo data reset");render()};
+load();render();
+</script></body></html>
